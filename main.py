@@ -968,7 +968,10 @@ def ai(
         Path("output/"), help="Run directory containing scanner.json."
     ),
     provider: Optional[str] = typer.Option(
-        None, "--provider", "-p", help="kilo | openai | anthropic"
+        None,
+        "--provider",
+        "-p",
+        help="minimax | kilo | groq | together | deepseek | openai | anthropic",
     ),
     key: Optional[str] = typer.Option(
         None, "--key", "-k", help="API key (or set BAKIBOUNTY_AI_KEY env var)"

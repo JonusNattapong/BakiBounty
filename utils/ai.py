@@ -31,7 +31,20 @@ _PROVIDER_ENDPOINTS: dict[str, str] = {
     "kilo": "https://api.kilocode.ai/v1/chat/completions",
     "openai": "https://api.openai.com/v1/chat/completions",
     "anthropic": "https://api.anthropic.com/v1/messages",
+    "minimax": "https://api.minimax.chat/v1/chat/completions",
+    "groq": "https://api.groq.com/openai/v1/chat/completions",
+    "together": "https://api.together.xyz/v1/chat/completions",
+    "deepseek": "https://api.deepseek.com/v1/chat/completions",
     "custom": "",  # must set base_url in config
+}
+
+# Free/cheap models per provider
+_PROVIDER_FREE_MODELS: dict[str, str] = {
+    "kilo": "grok-code-fast-1",
+    "minimax": "MiniMax-M2.5",
+    "groq": "llama-3.1-70b-versatile",
+    "together": "meta-llama/Llama-3-70b-chat-hf",
+    "deepseek": "deepseek-chat",
 }
 
 

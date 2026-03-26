@@ -172,6 +172,10 @@ class NotificationsConfig(BaseModel):
 
 class AiProvider(str, Enum):
     kilo = "kilo"
+    minimax = "minimax"
+    groq = "groq"
+    together = "together"
+    deepseek = "deepseek"
     openai = "openai"
     anthropic = "anthropic"
     custom = "custom"

@@ -122,14 +122,14 @@ notifications:
     - high
 
 # --- AI Analysis ---
-# Set api_key via BAKIBOUNTY_AI_KEY env var (recommended)
+# Free providers: minimax (M2.5), kilo (Grok Code Fast 1), groq (Llama 3.1), together
 ai:
-  enabled: false
-  provider: kilo             # kilo | openai | anthropic | custom
+  enabled: true
+  provider: minimax          # minimax | kilo | groq | together | deepseek | openai | anthropic
   api_key: null              # or set BAKIBOUNTY_AI_KEY env var
-  base_url: null             # custom endpoint (auto-set per provider)
-  model: gpt-4o-mini
-  analyze_findings: true     # auto-analyze after scan
+  base_url: null             # auto-set per provider
+  model: MiniMax-M2.5        # MiniMax M2.5 (free) | grok-code-fast-1 | llama-3.1-70b
+  analyze_findings: true
   analyze_severity:
     - critical
     - high
