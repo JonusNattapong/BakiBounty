@@ -12,6 +12,20 @@ general:
   retry: 2               # retries on failure
   verbose: false
 
+# --- Proxy ---
+# Route traffic through proxy for anonymity
+proxy:
+  enabled: false
+  http: null             # e.g. "http://127.0.0.1:8080"
+  https: null            # e.g. "http://127.0.0.1:8080"
+  socks5: null           # e.g. "socks5://127.0.0.1:1080"
+
+# --- Resume ---
+# Auto-save scan state for resume on crash
+resume:
+  enabled: true
+  state_file: .run_state.json
+
 # --- Tool Paths ---
 # Set to null to auto-detect from PATH
 tools:

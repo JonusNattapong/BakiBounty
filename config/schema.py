@@ -58,6 +58,18 @@ class GeneralConfig(BaseModel):
     verbose: bool = False
 
 
+class ProxyConfig(BaseModel):
+    enabled: bool = False
+    http: Optional[str] = None  # e.g. "http://127.0.0.1:8080"
+    https: Optional[str] = None  # e.g. "http://127.0.0.1:8080"
+    socks5: Optional[str] = None  # e.g. "socks5://127.0.0.1:1080"
+
+
+class ResumeConfig(BaseModel):
+    enabled: bool = True  # Auto-save state for resume
+    state_file: str = ".run_state.json"
+
+
 class ToolsConfig(BaseModel):
     subfinder: Optional[Path] = None
     amass: Optional[Path] = None
@@ -186,6 +198,8 @@ class BakiConfig(BaseModel):
     """Top-level configuration schema for BakiBounty."""
 
     general: GeneralConfig = GeneralConfig()
+    proxy: ProxyConfig = ProxyConfig()
+    resume: ResumeConfig = ResumeConfig()
     tools: ToolsConfig = ToolsConfig()
     recon: ReconConfig = ReconConfig()
     probing: ProbingConfig = ProbingConfig()

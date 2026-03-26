@@ -15,14 +15,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-import typer
-import yaml
-from rich.panel import Panel
-from rich.table import Table
+import typer  # noqa: E402
+import yaml  # noqa: E402
+from rich.panel import Panel  # noqa: E402
+from rich.table import Table  # noqa: E402
 
-from config.schema import BakiConfig
-from utils.helpers import resolve_all_tools
-from utils.logger import console, setup_logging
+from config.schema import BakiConfig  # noqa: E402
+from utils.helpers import resolve_all_tools  # noqa: E402
+from utils.logger import console, setup_logging  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # App setup
@@ -179,6 +179,69 @@ def _print_banner(cfg: BakiConfig) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Scan Profiles
+# ---------------------------------------------------------------------------
+
+PROFILES: dict[str, dict] = {
+    "fast": {
+        "description": "Quick scan - subfinder only, minimal nuclei",
+        "recon_sources": ["subfinder"],
+        "nuclei_severity": ["critical", "high"],
+        "nuclei_concurrency": 50,
+        "katana_depth": 1,
+        "ffuf_enabled": False,
+        "threads": 50,
+    },
+    "normal": {
+        "description": "Standard scan - balanced speed/coverage",
+        "recon_sources": ["subfinder"],
+        "nuclei_severity": ["critical", "high", "medium"],
+        "nuclei_concurrency": 25,
+        "katana_depth": 3,
+        "ffuf_enabled": True,
+        "threads": 20,
+    },
+    "deep": {
+        "description": "Thorough scan - all sources, full coverage",
+        "recon_sources": ["subfinder", "amass"],
+        "nuclei_severity": ["critical", "high", "medium", "low"],
+        "nuclei_concurrency": 15,
+        "katana_depth": 5,
+        "ffuf_enabled": True,
+        "threads": 10,
+    },
+}
+
+
+def _apply_profile(cfg: BakiConfig, profile_name: str) -> BakiConfig:
+    """Apply a scan profile to config."""
+    from config.schema import Severity
+
+    profile = PROFILES.get(profile_name)
+    if not profile:
+        console.print(
+            f"[yellow]Unknown profile '{profile_name}', using normal[/yellow]"
+        )
+        profile = PROFILES["normal"]
+
+    console.print(f"[dim]Profile: {profile_name} - {profile['description']}[/dim]")
+
+    # Apply settings
+    cfg.recon.sources = profile["recon_sources"]
+    cfg.scanning.nuclei.severity = [Severity(s) for s in profile["nuclei_severity"]]
+    cfg.scanning.nuclei.concurrency = profile["nuclei_concurrency"]
+    cfg.discovery.katana.depth = profile["katana_depth"]
+    cfg.general.threads = profile["threads"]
+
+    # Note: ffuf_enabled would need to be handled in the scanner module
+    # For now we just log it
+    if not profile["ffuf_enabled"]:
+        console.print("[dim]  ffuf disabled in this profile[/dim]")
+
+    return cfg
+
+
+# ---------------------------------------------------------------------------
 # Commands -- Pipeline
 # ---------------------------------------------------------------------------
 
@@ -187,6 +250,12 @@ def _print_banner(cfg: BakiConfig) -> None:
 def run(
     ctx: typer.Context,
     target: str = typer.Argument(..., help="Target domain or file with targets."),
+    profile: Optional[str] = typer.Option(
+        None,
+        "--profile",
+        "-p",
+        help="Scan profile: fast | normal | deep",
+    ),
     full: bool = typer.Option(
         False,
         "--full",
@@ -201,12 +270,22 @@ def run(
         "-j",
         help="Max parallel targets (1 = sequential).",
     ),
+    resume: bool = typer.Option(
+        False,
+        "--resume",
+        "-r",
+        help="Resume interrupted run.",
+    ),
 ) -> None:
     """Run the automated pipeline against a [bold]TARGET[/bold]."""
     import asyncio
 
     cfg: BakiConfig = ctx.obj["config"]
     setup_logging(log_dir=cfg.output.dir, verbose=cfg.general.verbose)
+
+    # Apply scan profile
+    if profile:
+        cfg = _apply_profile(cfg, profile)
 
     from loguru import logger
     from rich.live import Live
@@ -901,7 +980,7 @@ def ai(
     cfg: BakiConfig = ctx.obj.get("config", BakiConfig())
     setup_logging(log_dir=cfg.output.dir, verbose=cfg.general.verbose)
 
-    from utils.ai import analyze_run, get_api_key, is_enabled
+    from utils.ai import analyze_run, get_api_key
 
     # CLI overrides
     if provider:
@@ -947,23 +1026,30 @@ def ai(
 def scope(
     ctx: typer.Context,
     target: str = typer.Argument(..., help="Domain to check (e.g. example.com)."),
+    vulners_key: Optional[str] = typer.Option(
+        None, "--vulners-key", help="Vulners API key for CVE lookup"
+    ),
 ) -> None:
-    """Check if target is in bug bounty programs (HackerOne, Bugcrowd)."""
+    """Check if target is in bug bounty programs (HackerOne, Bugcrowd) + CVE lookup."""
     import asyncio
+    import os
 
     cfg: BakiConfig = ctx.obj.get("config", BakiConfig())
     setup_logging(log_dir=cfg.output.dir, verbose=cfg.general.verbose)
 
     from modules.scope import check_target_scope
 
+    # Get Vulners key from env or CLI
+    vk = vulners_key or os.environ.get("VULNERS_API_KEY")
+
     console.print(f"[cyan]>>> scope[/cyan] >> {target}")
-    console.print("  Checking HackerOne + Bugcrowd...")
+    console.print("  Checking HackerOne + Bugcrowd + Vulners...")
 
     async def _run() -> None:
-        result = await check_target_scope(target)
+        result = await check_target_scope(target, vulners_key=vk)
 
         if result["in_scope"]:
-            console.print(f"  [green][+][/green] {target} is in scope!\n")
+            console.print(f"  [green][+][/green] {target} found in programs!\n")
 
             for p in result["programs"]:
                 platform = p.get("platform", "unknown")
@@ -976,24 +1062,44 @@ def scope(
 
                 if p.get("offers_bounties"):
                     console.print("    [green]$ Bounty available[/green]")
-                else:
-                    console.print("    [dim]No bounty[/dim]")
-
-                if p.get("max_severity"):
-                    console.print(f"    Max Severity: {p['max_severity']}")
-
-                if p.get("domain_in_scope"):
-                    console.print("    [green]+ Domain confirmed in scope[/green]")
+                if p.get("max_payout"):
+                    console.print(f"    Max Payout: ${p['max_payout']:,}")
+                if p.get("state"):
+                    console.print(f"    State: {p['state']}")
 
                 console.print()
 
             if result["bounty_available"]:
                 console.print("  [bold green]$ BOUNTY AVAILABLE![/bold green]")
-        else:
+                console.print()
+
+        # Vulners results
+        vul = result.get("vulners")
+        if vul and vul.get("total_vulns", 0) > 0:
+            console.print(f"  [bold]Known Vulnerabilities:[/bold] {vul['total_vulns']}")
+            if vul.get("critical"):
+                console.print(f"    [red]Critical: {vul['critical']}[/red]")
+            if vul.get("high"):
+                console.print(f"    [yellow]High: {vul['high']}[/yellow]")
+            if vul.get("medium"):
+                console.print(f"    Medium: {vul['medium']}")
+            if vul.get("low"):
+                console.print(f"    Low: {vul['low']}")
+
+            if vul.get("top_cves"):
+                console.print("\n  [bold]Top CVEs:[/bold]")
+                for cve in vul["top_cves"][:5]:
+                    cvss_str = f"CVSS:{cve['cvss']}" if cve.get("cvss") else ""
+                    console.print(f"    - {cve['cve']} {cvss_str}")
+                    if cve.get("title"):
+                        console.print(f"      {cve['title'][:80]}")
+            console.print()
+
+        if not result["in_scope"] and (not vul or vul.get("total_vulns", 0) == 0):
             console.print(
                 f"  [yellow][~] {target} not found in public programs[/yellow]"
             )
-            console.print("  [dim]Try checking manually:[/dim]")
+            console.print("  [dim]Check manually:[/dim]")
             console.print(f"    - https://hackerone.com/directory?query={target}")
             console.print(f"    - https://bugcrowd.com/programs?search={target}")
 

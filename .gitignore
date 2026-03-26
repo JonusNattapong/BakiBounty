@@ -28,6 +28,7 @@ Thumbs.db
 output/
 *.log
 .ruff_cache/
+.run_state.json
 
 # Secrets (never commit)
 .env

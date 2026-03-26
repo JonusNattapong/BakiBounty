@@ -1,0 +1,66 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "bakibounty"
+version = "0.1.0"
+description = "Advanced bug bounty automation framework"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+authors = [
+    { name = "BakiBounty", email = "bakibounty@example.com" },
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+    "Typing :: Typed",
+]
+dependencies = [
+    "typer>=0.15.0",
+    "rich>=14.0.0",
+    "pydantic>=2.10.0",
+    "pyyaml>=6.0.0",
+    "httpx>=0.28.0",
+    "aiofiles>=24.1.0",
+    "loguru>=0.7.3",
+    "orjson>=3.10.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=5.0.0",
+    "ruff>=0.8.0",
+]
+
+[project.scripts]
+bakibounty = "main:app"
+bb = "main:app"
+
+[project.urls]
+Homepage = "https://github.com/JonusNattapong/BakiBounty"
+Repository = "https://github.com/JonusNattapong/BakiBounty"
+Issues = "https://github.com/JonusNattapong/BakiBounty/issues"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "N"]
+ignore = ["E501"]  # Line too long (handled by formatter)
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
