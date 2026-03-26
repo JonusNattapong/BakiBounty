@@ -158,6 +158,25 @@ class NotificationsConfig(BaseModel):
     on: list[NotifyOn] = Field(default=[NotifyOn.critical, NotifyOn.high])
 
 
+class AiProvider(str, Enum):
+    kilo = "kilo"
+    openai = "openai"
+    anthropic = "anthropic"
+    custom = "custom"
+
+
+class AiConfig(BaseModel):
+    enabled: bool = False
+    provider: AiProvider = AiProvider.kilo
+    api_key: Optional[str] = None  # or set BAKIBOUNTY_AI_KEY env var
+    base_url: Optional[str] = None  # custom API endpoint
+    model: str = "gpt-4o-mini"
+    analyze_findings: bool = True  # auto-analyze critical/high
+    analyze_severity: list[Severity] = Field(default=[Severity.critical, Severity.high])
+    max_tokens: int = Field(default=1024, ge=256, le=4096)
+    temperature: float = Field(default=0.3, ge=0.0, le=1.0)
+
+
 # ---------------------------------------------------------------------------
 # Root config
 # ---------------------------------------------------------------------------
@@ -174,6 +193,7 @@ class BakiConfig(BaseModel):
     scanning: ScanningConfig = ScanningConfig()
     output: OutputConfig = OutputConfig()
     notifications: NotificationsConfig = NotificationsConfig()
+    ai: AiConfig = AiConfig()
 
     class Config:
         extra = "ignore"

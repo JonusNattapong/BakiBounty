@@ -291,6 +291,18 @@ def run(
                             summary["status"] = r.status
                         if r.errors:
                             summary["errors"].extend(r.errors)
+
+                        # AI analysis of findings
+                        if cfg.ai.enabled and r.items:
+                            from utils.ai import analyze_findings_batch, is_enabled
+
+                            if is_enabled(cfg):
+                                r.items = await analyze_findings_batch(r.items, cfg)
+                                # Re-save with AI analysis
+                                from utils.helpers import save_json
+
+                                save_json(r.to_dict(), run_dir / "scanner.json")
+
                         # Send notifications for matching findings
                         if cfg.notifications.enabled and r.items:
                             for finding in r.items:
@@ -861,6 +873,65 @@ def notify(
                     console.print(f"  [red][-] {name}: failed[/red]")
             except Exception as e:
                 console.print(f"  [red][-] {name}: {e}[/red]")
+
+    asyncio.run(_run())
+
+
+@app.command(rich_help_panel="Utility")
+def ai(
+    ctx: typer.Context,
+    input_dir: Path = typer.Argument(
+        Path("output/"), help="Run directory containing scanner.json."
+    ),
+    provider: Optional[str] = typer.Option(
+        None, "--provider", "-p", help="kilo | openai | anthropic"
+    ),
+    key: Optional[str] = typer.Option(
+        None, "--key", "-k", help="API key (or set BAKIBOUNTY_AI_KEY env var)"
+    ),
+) -> None:
+    """Analyze scan findings with AI."""
+    import asyncio
+
+    cfg: BakiConfig = ctx.obj.get("config", BakiConfig())
+    setup_logging(log_dir=cfg.output.dir, verbose=cfg.general.verbose)
+
+    from utils.ai import analyze_run, get_api_key, is_enabled
+
+    # CLI overrides
+    if provider:
+        cfg.ai.enabled = True
+        cfg.ai.provider = provider
+    if key:
+        cfg.ai.enabled = True
+        cfg.ai.api_key = key
+
+    if not cfg.ai.enabled:
+        console.print(
+            "[yellow][~] AI is disabled. Use --provider or enable in config[/yellow]"
+        )
+        raise typer.Exit(1)
+
+    api_key = get_api_key(cfg)
+    if not api_key:
+        console.print("[red]No API key. Set BAKIBOUNTY_AI_KEY env var or --key[/red]")
+        raise typer.Exit(1)
+
+    if not input_dir.is_dir():
+        console.print(f"[red]Directory not found: {input_dir}[/red]")
+        raise typer.Exit(1)
+
+    console.print(f"[cyan]>>> ai[/cyan] >> {input_dir}")
+    console.print(f"  Provider: {cfg.ai.provider}, Model: {cfg.ai.model}")
+
+    async def _run() -> None:
+        result = await analyze_run(input_dir, cfg)
+        if result:
+            console.print(
+                f"  [green][+][/green] Analyzed {result['analyzed']}/{result['findings']} findings"
+            )
+        else:
+            console.print("  [yellow][~] No findings to analyze[/yellow]")
 
     asyncio.run(_run())
 

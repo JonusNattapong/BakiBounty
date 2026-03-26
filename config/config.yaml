@@ -106,3 +106,18 @@ notifications:
   on:
     - critical
     - high
+
+# --- AI Analysis ---
+# Set api_key via BAKIBOUNTY_AI_KEY env var (recommended)
+ai:
+  enabled: false
+  provider: kilo             # kilo | openai | anthropic | custom
+  api_key: null              # or set BAKIBOUNTY_AI_KEY env var
+  base_url: null             # custom endpoint (auto-set per provider)
+  model: gpt-4o-mini
+  analyze_findings: true     # auto-analyze after scan
+  analyze_severity:
+    - critical
+    - high
+  max_tokens: 1024
+  temperature: 0.3

@@ -32,4 +32,4 @@ output/
 # Secrets (never commit)
 .env
 *.env
-config.yaml
+/config.yaml
