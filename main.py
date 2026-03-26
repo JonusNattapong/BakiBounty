@@ -10,6 +10,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional
 
+# Load .env file before other imports
+from dotenv import load_dotenv
+
+load_dotenv()
+
 import typer
 import yaml
 from rich.panel import Panel
@@ -900,8 +905,10 @@ def ai(
 
     # CLI overrides
     if provider:
+        from config.schema import AiProvider
+
         cfg.ai.enabled = True
-        cfg.ai.provider = provider
+        cfg.ai.provider = AiProvider(provider)
     if key:
         cfg.ai.enabled = True
         cfg.ai.api_key = key
