@@ -943,6 +943,63 @@ def ai(
     asyncio.run(_run())
 
 
+@app.command(rich_help_panel="Utility")
+def scope(
+    ctx: typer.Context,
+    target: str = typer.Argument(..., help="Domain to check (e.g. example.com)."),
+) -> None:
+    """Check if target is in bug bounty programs (HackerOne, Bugcrowd)."""
+    import asyncio
+
+    cfg: BakiConfig = ctx.obj.get("config", BakiConfig())
+    setup_logging(log_dir=cfg.output.dir, verbose=cfg.general.verbose)
+
+    from modules.scope import check_target_scope
+
+    console.print(f"[cyan]>>> scope[/cyan] >> {target}")
+    console.print("  Checking HackerOne + Bugcrowd...")
+
+    async def _run() -> None:
+        result = await check_target_scope(target)
+
+        if result["in_scope"]:
+            console.print(f"  [green][+][/green] {target} is in scope!\n")
+
+            for p in result["programs"]:
+                platform = p.get("platform", "unknown")
+                name = p.get("name", "Unknown")
+                url = p.get("url", "")
+
+                console.print(f"  [bold]{name}[/bold] ({platform})")
+                if url:
+                    console.print(f"    URL: {url}")
+
+                if p.get("offers_bounties"):
+                    console.print("    [green]$ Bounty available[/green]")
+                else:
+                    console.print("    [dim]No bounty[/dim]")
+
+                if p.get("max_severity"):
+                    console.print(f"    Max Severity: {p['max_severity']}")
+
+                if p.get("domain_in_scope"):
+                    console.print("    [green]+ Domain confirmed in scope[/green]")
+
+                console.print()
+
+            if result["bounty_available"]:
+                console.print("  [bold green]$ BOUNTY AVAILABLE![/bold green]")
+        else:
+            console.print(
+                f"  [yellow][~] {target} not found in public programs[/yellow]"
+            )
+            console.print("  [dim]Try checking manually:[/dim]")
+            console.print(f"    - https://hackerone.com/directory?query={target}")
+            console.print(f"    - https://bugcrowd.com/programs?search={target}")
+
+    asyncio.run(_run())
+
+
 # ---------------------------------------------------------------------------
 # Entry
 # ---------------------------------------------------------------------------
