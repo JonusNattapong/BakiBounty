@@ -1,0 +1,108 @@
+# ============================================================
+# BakiBounty Configuration
+# ============================================================
+# Copy to config.yaml and modify as needed.
+# CLI flag: --config path/to/config.yaml
+
+# --- General ---
+general:
+  threads: 20
+  rate_limit: 150        # requests per second
+  timeout: 30            # seconds per tool execution
+  retry: 2               # retries on failure
+  verbose: false
+
+# --- Tool Paths ---
+# Set to null to auto-detect from PATH
+tools:
+  subfinder: null
+  amass: null
+  httpx: null
+  nuclei: null
+  katana: null
+  ffuf: null
+  naabu: null
+
+# --- Recon ---
+recon:
+  sources:
+    - subfinder
+    # - amass
+  subfinder:
+    all_sources: true
+    recursive: true
+  amass:
+    mode: enum          # enum | intel
+
+# --- Probing ---
+probing:
+  httpx:
+    status_code: true
+    tech_detect: true
+    content_length: true
+    title: true
+    favicon: true
+    response_time: true
+    follow_redirects: true
+
+# --- Discovery ---
+discovery:
+  katana:
+    depth: 3
+    js_crawl: true
+    field_scope: rdn
+    strategy: breadth-first
+
+# --- Scanning ---
+scanning:
+  nuclei:
+    severity:
+      - critical
+      - high
+      - medium
+    templates_dir: null          # null = use nuclei default
+    custom_templates_dir: templates/
+    concurrency: 25
+    rate_limit: 150
+    headless: false
+  ffuf:
+    wordlist: /usr/share/seclists/Discovery/Web-Content/common.txt
+    extensions:
+      - .php
+      - .asp
+      - .aspx
+      - .jsp
+      - .html
+    match_codes:
+      - 200
+      - 204
+      - 301
+      - 302
+      - 307
+      - 401
+      - 403
+      - 405
+      - 500
+    threads: 40
+    recursion_depth: 2
+
+# --- Output ---
+output:
+  dir: output/
+  formats:
+    - json
+    - markdown
+    # - html
+  compress: false
+
+# --- Notifications ---
+notifications:
+  enabled: false
+  telegram:
+    bot_token: null
+    chat_id: null
+  discord:
+    webhook_url: null
+  on:
+    - critical
+    - high

@@ -1,0 +1,28 @@
+"""
+BakiBounty - Modules Package
+
+Each module implements one phase of the pipeline:
+  - recon       : Passive/active subdomain enumeration
+  - probing     : HTTP probing & technology detection
+  - discovery   : Content & endpoint discovery
+  - scanner     : Vulnerability scanning
+  - postprocess : Result aggregation & reporting
+"""
+
+from modules.discovery import run_discovery, run_katana
+from modules.probing import run_httpx, run_probing
+from modules.recon import run_amass, run_recon, run_subfinder
+from modules.scanner import run_ffuf, run_nuclei, run_scanner
+
+__all__ = [
+    "run_amass",
+    "run_discovery",
+    "run_ffuf",
+    "run_httpx",
+    "run_katana",
+    "run_nuclei",
+    "run_probing",
+    "run_recon",
+    "run_scanner",
+    "run_subfinder",
+]
