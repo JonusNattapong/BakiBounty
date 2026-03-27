@@ -198,6 +198,18 @@ class AiConfig(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+class BountyConfig(BaseModel):
+    enabled: bool = True
+    sources: list[str] = Field(
+        default=["hackerone", "bugcrowd", "intigriti", "yeswehack", "federacy"]
+    )
+    data_url: str = (
+        "https://raw.githubusercontent.com/arkadiyt/bounty-targets-data/master/data/"
+    )
+    bounty_only: bool = False
+    limit: int = Field(default=50, ge=1, le=500)
+
+
 class BakiConfig(BaseModel):
     """Top-level configuration schema for BakiBounty."""
 
@@ -209,6 +221,7 @@ class BakiConfig(BaseModel):
     probing: ProbingConfig = ProbingConfig()
     discovery: DiscoveryConfig = DiscoveryConfig()
     scanning: ScanningConfig = ScanningConfig()
+    bounty: BountyConfig = BountyConfig()
     output: OutputConfig = OutputConfig()
     notifications: NotificationsConfig = NotificationsConfig()
     ai: AiConfig = AiConfig()

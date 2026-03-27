@@ -41,10 +41,13 @@ recon_app = typer.Typer(help="Reconnaissance modules (subfinder, amass, etc.)")
 probe_app = typer.Typer(help="HTTP probing and technology detection")
 discover_app = typer.Typer(help="Content and endpoint discovery")
 scan_app = typer.Typer(help="Vulnerability scanning (nuclei, ffuf, etc.)")
+bounty_app = typer.Typer(help="Bug bounty program discovery tools")
+
 app.add_typer(recon_app, name="recon", rich_help_panel="Modules")
 app.add_typer(probe_app, name="probe", rich_help_panel="Modules")
 app.add_typer(discover_app, name="discover", rich_help_panel="Modules")
 app.add_typer(scan_app, name="scan", rich_help_panel="Modules")
+app.add_typer(bounty_app, name="bounty", rich_help_panel="Modules")
 
 
 # ---------------------------------------------------------------------------
@@ -1107,6 +1110,108 @@ def scope(
             console.print(f"    - https://bugcrowd.com/programs?search={target}")
 
     asyncio.run(_run())
+
+
+@bounty_app.command("search")
+def bounty_search(
+    ctx: typer.Context,
+    query: str = typer.Argument(..., help="Search keyword (e.g. 'google', 'tesla')."),
+    run_pipeline: bool = typer.Option(
+        False, "--run", "-r", help="Run full pipeline on discovered targets."
+    ),
+    profile: str = typer.Option("normal", "--profile", "-p", help="Scan profile."),
+    bounty_only: bool = typer.Option(
+        False, "--bounty-only", "-b", help="Only show programs that pay rewards."
+    ),
+    limit: int = typer.Option(
+        50, "--limit", "-l", help="Max domains to extract and scan."
+    ),
+) -> None:
+    """Search for bug bounty programs and extract in-scope domains."""
+    import asyncio
+    from pathlib import Path
+
+    cfg: BakiConfig = ctx.obj["config"]
+    setup_logging(log_dir=cfg.output.dir, verbose=cfg.general.verbose)
+
+    from modules.bounty import run_bounty_search
+    from utils.helpers import create_run_dir
+
+    console.print(f"\n[bold cyan]>>> Bounty Discovery Flow[/bold cyan] >> keyword: [bold]{query}[/bold]")
+    if bounty_only:
+        console.print("[dim]  Filtering: programs with monetary rewards only[/dim]")
+    console.print(f"[dim]  Limit: up to {limit} unique domains[/dim]\n")
+
+    async def _run() -> tuple[Optional[Path], set[str]]:
+        run_dir = create_run_dir(f"bounty_search_{query}", base_dir=cfg.output.dir)
+        result = await run_bounty_search(
+            query, 
+            cfg, 
+            bounty_only=bounty_only, 
+            limit=limit
+        )
+        result.save(run_dir, filename="bounty_search.json")
+
+        if not result.items:
+            console.print(f"  [yellow][~] No matching programs found for '{query}'[/yellow]")
+            return None, set()
+
+        console.print(f"  [green][+][/green] Found {len(result.items)} matching programs")
+        
+        all_domains = set()
+        table = Table(title=f"Discovered Programs: {query}", border_style="cyan")
+        table.add_column("Program", style="bold")
+        table.add_column("Platform", style="blue")
+        table.add_column("Bounty", justify="center")
+        table.add_column("Targets", justify="right")
+
+        for p in result.items:
+            domains = p.get("domains", [])
+            for d in domains:
+                if len(all_domains) < limit:
+                    all_domains.add(d)
+            
+            bounty_str = "[green]Yes[/green]" if p.get("offers_bounty") else "[dim]No[/dim]"
+            if p.get("max_payout"):
+                bounty_str = f"[green]${p['max_payout']:,}[/green]"
+
+            table.add_row(
+                p.get("name"),
+                p.get("source"),
+                bounty_str,
+                str(len(domains))
+            )
+        
+        console.print(table)
+        
+        # Deduplicate and sort
+        final_targets = sorted(list(all_domains))
+        console.print(f"\n  [bold]Unique Targets to Scan:[/bold] {len(final_targets)}")
+        
+        # Save domains to a file for potential piping or manual use
+        domains_file = run_dir / "targets.txt"
+        with open(domains_file, "w", encoding="utf-8") as f:
+            f.write("\n".join(final_targets))
+        
+        console.print(f"  [dim]Saved targets list to: {domains_file}[/dim]")
+        
+        return domains_file, all_domains
+
+    domains_file, all_domains = asyncio.run(_run())
+
+    if run_pipeline and all_domains and domains_file:
+        console.print("\n" + "="*80)
+        console.print("[bold green]STARTING AUTOMATED BOUNTY HUNTER PIPELINE[/bold green]")
+        console.print("="*80 + "\n")
+        
+        # We call the run command handler directly.
+        ctx.invoke(
+            run,
+            target=str(domains_file),
+            profile=profile,
+            full=True,
+            concurrency=5 if len(all_domains) > 5 else 2,
+        )
 
 
 # ---------------------------------------------------------------------------

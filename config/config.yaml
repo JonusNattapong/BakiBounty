@@ -27,15 +27,27 @@ resume:
   state_file: .run_state.json
 
 # --- Tool Paths ---
-# Set to null to auto-detect from PATH
+# Set to absolute path to binaries
 tools:
-  subfinder: null
+  subfinder: C:/Users/Admin/go/bin/subfinder.exe
   amass: null
-  httpx: null
-  nuclei: null
-  katana: null
-  ffuf: null
+  httpx: C:/Users/Admin/go/bin/httpx.exe
+  nuclei: C:/Users/Admin/go/bin/nuclei.exe
+  katana: C:/Users/Admin/go/bin/katana.exe
+  ffuf: C:/Users/Admin/go/bin/ffuf.exe
   naabu: null
+
+# --- Bounty Discovery ---
+bounty:
+  enabled: true
+  sources:
+    - hackerone
+    - bugcrowd
+    - intigriti
+    - yeswehack
+    - federacy
+  bounty_only: true
+  limit: 20
 
 # --- Recon ---
 recon:

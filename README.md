@@ -14,7 +14,7 @@ Advanced bug bounty automation framework for reconnaissance, probing, content di
 
 ## Pipeline
 
-```
+```text
 recon (subfinder/amass) → probe (httpx) → discover (katana) → scan (nuclei/ffuf) → report
 ```
 
@@ -88,7 +88,7 @@ notifications:
 
 Results are saved to `output/<target>_<timestamp>/`:
 
-```
+```text
 output/example.com_20260326_120000/
 ├── recon.json            # All discovered subdomains
 ├── recon_subfinder.json  # Subfinder raw results
@@ -107,7 +107,7 @@ output/example.com_20260326_120000/
 ## CLI Reference
 
 | Command | Description |
-|---------|-------------|
+| :--- | :--- |
 | `run <target>` | Full pipeline |
 | `run <target> -j N` | Parallel N targets |
 | `run <target> --skip-recon` | Skip recon phase |
@@ -118,22 +118,25 @@ output/example.com_20260326_120000/
 | `discover katana <urls>` | Content discovery |
 | `scan nuclei <targets>` | Vulnerability scanning |
 | `scan ffuf <url>` | Content fuzzing |
+| `bounty search <q>` | Search for bug bounty programs |
+| `bounty search <q> -r` | Search and run pipeline |
 | `report <dir>` | Generate reports |
 | `doctor` | Check tool availability |
 | `notify` | Test notification channels |
 
 ## Project Structure
 
-```
+```text
 main.py              # CLI entry (typer + rich)
 config/
   config.yaml        # Default configuration
   schema.py          # Pydantic v2 models
-modules/
-  recon.py           # subfinder + amass
-  probing.py         # httpx wrapper
-  discovery.py       # katana wrapper
-  scanner.py         # nuclei + ffuf
+  modules/
+    bounty.py        # NEW: Bug bounty search
+    recon.py         # subfinder + amass
+    probing.py       # httpx wrapper
+    discovery.py     # katana wrapper
+    scanner.py       # nuclei + ffuf
 utils/
   helpers.py         # Tool resolver, subprocess, JSON I/O
   logger.py          # loguru + rich logging

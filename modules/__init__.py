@@ -9,6 +9,7 @@ Each module implements one phase of the pipeline:
   - scope       : Bug bounty program scope checker
 """
 
+from modules.bounty import run_bounty_search
 from modules.discovery import run_discovery, run_katana
 from modules.probing import run_httpx, run_probing
 from modules.recon import run_amass, run_recon, run_subfinder
@@ -19,6 +20,7 @@ __all__ = [
     "check_target_multi",
     "check_target_scope",
     "run_amass",
+    "run_bounty_search",
     "run_discovery",
     "run_ffuf",
     "run_httpx",
